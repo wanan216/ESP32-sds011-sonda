@@ -9,3 +9,4 @@ D5  - SD cs
 D18 - SD clk
 D19 - SD miso
 D23 - SD mosi
+D2(inbuild LED)
