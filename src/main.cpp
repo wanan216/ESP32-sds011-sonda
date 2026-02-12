@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <DHT.h>
 #include <SD.h>
 #include <SPI.h>
 #include <esp_now.h>
@@ -7,6 +8,7 @@
 #define RXD2 16
 #define TXD2 17
 #define LED_PIN 2
+#define DHT11P 32
 int step = 9;
 int curread;
 int data[9];
@@ -16,12 +18,15 @@ uint8_t broadcastAddress[] = {0xec, 0xe3, 0x34, 0x88, 0xf4, 0x7c};
 typedef struct wiadomosc {
   float PM25V;
   float PM10V;
+  float temp;
+  float humid;
   long long czas;
 } wiadomosc;
 wiadomosc dane;
 esp_now_peer_info_t peerInfo;
 
 File plik;
+DHT dht(DHT11P,DHT11);
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
@@ -29,6 +34,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 }
 
 void setup() {
+  dht.begin();
   //przygotowywanie komunikacji
   Serial.begin(921600);
   WiFi.mode(WIFI_STA);
@@ -58,7 +64,7 @@ void setup() {
   plik = SD.open("/dane.txt", FILE_APPEND);
   plik.println("");
   plik.println("---------------------------------");
-  plik.println("PM2.5 PM10 Czas");
+  plik.println("PM2.5 PM10 Temperatura wilgotność Czas");
   plik.close();
 }
 
@@ -78,6 +84,8 @@ void loop() {
         //znak
         digitalWrite(LED_PIN,HIGH);
         // obliczenia
+        dane.humid = dht.readHumidity();
+        dane.temp = dht.readTemperature();
         dane.PM25V = (data[3]*256+data[2]);
         dane.PM25V = dane.PM25V/10;
         dane.PM10V = (data[5]*256+data[4]);
@@ -95,6 +103,18 @@ void loop() {
         plik.print(dane.PM10V);
         plik.print(" ");
         Serial.println(dane.PM10V);
+        //Temperatura
+        Serial.print("Temperatura: ");
+        plik.print(dane.temp);
+        plik.print(" ");
+        Serial.print(dane.temp);
+        Serial.println(" C");
+        // Wilgotność
+        Serial.print("Wilgotność: ");
+        plik.print(dane.humid);
+        plik.print(" ");
+        Serial.print(dane.humid);
+        Serial.println(" %");
         // czas
         Serial.print("Czas: ");
         plik.print(dane.czas);
